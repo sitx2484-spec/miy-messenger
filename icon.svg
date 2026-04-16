@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f8fff"/>
+      <stop offset="100%" stop-color="#6b21d8"/>
+    </linearGradient>
+  </defs>
+  <!-- Dark rounded background -->
+  <rect width="100" height="100" rx="22" fill="#0d0f18"/>
+  <!-- Outer ring -->
+  <path d="M50 8 A42 42 0 0 1 92 50 A42 42 0 0 1 50 92 A42 42 0 0 1 8 50 A42 42 0 0 1 50 8" stroke="url(#g)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.35"/>
+  <!-- Mid ring -->
+  <path d="M50 17 A33 33 0 0 1 83 50 A33 33 0 0 1 50 83 A33 33 0 0 1 17 50 A33 33 0 0 1 50 17" stroke="url(#g)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.55"/>
+  <!-- Inner ring -->
+  <path d="M50 26 A24 24 0 0 1 74 50 A24 24 0 0 1 50 74 A24 24 0 0 1 26 50 A24 24 0 0 1 50 26" stroke="url(#g)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <!-- E letter - bold -->
+  <path d="M30 33 L30 67 M30 33 L62 33 M30 50 L56 50 M30 67 L62 67" stroke="url(#g)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Sound wave right of E -->
+  <path d="M67 43 Q73 50 67 57" stroke="url(#g)" stroke-width="5.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+  <path d="M73 38 Q82 50 73 62" stroke="url(#g)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+</svg>
