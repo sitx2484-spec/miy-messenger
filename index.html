@@ -1087,6 +1087,55 @@ body.spring-mode .brand{background:linear-gradient(130deg,#ff85a1,#a8e6cf);-webk
 @keyframes splashFade{to{opacity:0;pointer-events:none}}
 </style>
 
+<!-- GOOGLE EMAIL VERIFY SCREEN -->
+<div id="google-verify-screen" style="display:none;position:fixed;inset:0;background:var(--bg1);z-index:300;align-items:center;justify-content:center;padding:20px">
+  <div style="width:min(400px,100%);background:var(--bg3);border-radius:24px;padding:28px;border:1px solid var(--bg4);display:flex;flex-direction:column;gap:16px">
+    <!-- Header -->
+    <div style="text-align:center">
+      <div style="font-size:48px;margin-bottom:8px">📧</div>
+      <div style="font-size:22px;font-weight:800;background:linear-gradient(130deg,#4f8fff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Підтвердь вхід</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:6px" id="gv-hint">Ми надіслали 6-значний код на твій Google email</div>
+    </div>
+    <!-- Code inputs -->
+    <div style="display:flex;gap:8px;justify-content:center">
+      <input class="code-box" id="gv-0" type="text" maxlength="1" inputmode="numeric" oninput="gvDigit(this,0)">
+      <input class="code-box" id="gv-1" type="text" maxlength="1" inputmode="numeric" oninput="gvDigit(this,1)">
+      <input class="code-box" id="gv-2" type="text" maxlength="1" inputmode="numeric" oninput="gvDigit(this,2)">
+      <input class="code-box" id="gv-3" type="text" maxlength="1" inputmode="numeric" oninput="gvDigit(this,3)">
+      <input class="code-box" id="gv-4" type="text" maxlength="1" inputmode="numeric" oninput="gvDigit(this,4)">
+      <input class="code-box" id="gv-5" type="text" maxlength="1" inputmode="numeric" oninput="gvDigit(this,5)">
+    </div>
+    <!-- Error -->
+    <div id="gv-error" style="display:none;color:var(--danger);font-size:13px;text-align:center;background:rgba(240,85,102,.1);border-radius:10px;padding:8px 12px"></div>
+    <!-- Confirm button -->
+    <button id="gv-btn" onclick="submitGoogleVerify()" style="padding:14px;background:linear-gradient(135deg,#4f8fff,#7c3aed);border:none;border-radius:13px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s">
+      ✅ Підтвердити
+    </button>
+    <!-- Resend -->
+    <div style="text-align:center">
+      <button id="gv-resend" onclick="resendGoogleCode()" style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:4px">
+        Надіслати код знову
+      </button>
+    </div>
+    <!-- Back -->
+    <div style="text-align:center">
+      <a href="/" style="color:var(--text2);font-size:12px;text-decoration:none">← Повернутись на початок</a>
+    </div>
+  </div>
+</div>
+
+<style>
+.code-box{
+  width:46px;height:54px;text-align:center;font-size:24px;font-weight:700;
+  background:var(--bg4);border:2px solid var(--bg4);border-radius:12px;
+  color:var(--text);outline:none;transition:border .15s,transform .1s;
+  font-family:var(--font);
+}
+.code-box:focus{border-color:var(--accent);transform:scale(1.05)}
+.code-box.error{border-color:var(--danger);animation:shake .3s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+</style>
+
 <!-- LOGIN -->
 <div id="login-screen">
   <canvas id="particles"></canvas>
@@ -2106,6 +2155,93 @@ function backToLogin(){
 
 
 
+// ══ Google Email Verification ════════════════════════════
+function showGoogleVerifyScreen(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='none';
+  document.getElementById('setup-screen').style.display='none';
+  const el=document.getElementById('google-verify-screen');
+  el.style.display='flex';
+  setTimeout(()=>document.getElementById('gv-0')?.focus(),100);
+}
+
+function gvDigit(input,idx){
+  input.value=input.value.replace(/\D/g,'');
+  input.classList.remove('error');
+  if(input.value&&idx<5){
+    document.getElementById('gv-'+(idx+1))?.focus();
+  }
+  const code=[0,1,2,3,4,5].map(i=>document.getElementById('gv-'+i)?.value||'').join('');
+  if(code.length===6)submitGoogleVerify();
+}
+
+async function submitGoogleVerify(){
+  const code=[0,1,2,3,4,5].map(i=>document.getElementById('gv-'+i)?.value||'').join('');
+  const errEl=document.getElementById('gv-error');
+  const btn=document.getElementById('gv-btn');
+  if(code.length<6){
+    errEl.textContent='Введи всі 6 цифр';errEl.style.display='block';return;
+  }
+  btn.disabled=true;btn.textContent='Перевірка…';
+  errEl.style.display='none';
+  try{
+    const r=await fetch('/api/auth/verify-google',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code})
+    });
+    const d=await r.json();
+    if(!r.ok){
+      // Shake inputs and show error
+      [0,1,2,3,4,5].forEach(i=>{
+        const el=document.getElementById('gv-'+i);
+        if(el){el.classList.add('error');el.value='';}
+      });
+      document.getElementById('gv-0')?.focus();
+      errEl.textContent=d.error||'Невірний код';errEl.style.display='block';
+      btn.disabled=false;btn.textContent='✅ Підтвердити';
+      return;
+    }
+    // Success — show checkmark animation
+    btn.textContent='✅ Успіх!';
+    btn.style.background='linear-gradient(135deg,#29d67a,#20b060)';
+    me=d.user;
+    await openDB();
+    setTimeout(()=>{
+      document.getElementById('google-verify-screen').style.display='none';
+      // Remove ?google_verify=1 from URL
+      window.history.replaceState({},'','/');
+      if(d.needsSetup){showSetupScreen();}
+      else{initApp();}
+    },600);
+  }catch{
+    errEl.textContent='Помилка з\'єднання. Спробуй ще.';errEl.style.display='block';
+    btn.disabled=false;btn.textContent='✅ Підтвердити';
+  }
+}
+
+let _gvResendCooldown=0;
+async function resendGoogleCode(){
+  const now=Date.now();
+  if(now-_gvResendCooldown<30000){
+    showToast('⏳','Зачекай 30 секунд','',null);return;
+  }
+  _gvResendCooldown=now;
+  const btn=document.getElementById('gv-resend');
+  btn.textContent='Відправляємо…';btn.disabled=true;
+  try{
+    const r=await fetch('/api/auth/resend-google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    const d=await r.json();
+    if(r.ok){
+      btn.textContent='✓ Надіслано!';
+      document.getElementById('gv-hint').textContent='Новий код надіслано на твій email';
+      setTimeout(()=>{btn.textContent='Надіслати код знову';btn.disabled=false;},30000);
+    }else{
+      btn.textContent='Помилка. Спробуй ще.';btn.disabled=false;
+    }
+  }catch{btn.textContent='Помилка';btn.disabled=false;}
+}
+
 // ══ Profile Setup ════════════════════════════════════════
 let setupAvatarData=null;
 function showSetupScreen(){
@@ -2158,6 +2294,13 @@ async function submitSetup(){
 (async()=>{
   await openDB();
   const _params=new URLSearchParams(location.search);
+
+  // Google email verification flow
+  if(_params.get('google_verify')==='1'){
+    showGoogleVerifyScreen();
+    return;
+  }
+
   if(_params.get('error')==='auth')
     document.getElementById('login-error').textContent='Помилка авторизації.';
   try{
