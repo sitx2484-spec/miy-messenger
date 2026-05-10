@@ -330,21 +330,7 @@ function sanitize(str, maxLen=4000) {
   return str.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/javascript:/gi,'').trim().slice(0, maxLen);
 }
 
-// Security middleware
-app.use((req,res,next) => {
-  // Security headers
-  res.setHeader('X-Content-Type-Options','nosniff');
-  res.setHeader('X-Frame-Options','SAMEORIGIN');
-  res.setHeader('X-XSS-Protection','1; mode=block');
-  res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
-  res.setHeader('ngrok-skip-browser-warning','1');
-  // Global rate limit: 200 req/min per IP
-  const ip = getClientIp(req);
-  if (req.path.startsWith('/api/') && getRateLimit(ip, 200, 60000)) {
-    return res.status(429).json({error:'Занадто багато запитів. Спробуй через хвилину.'});
-  }
-  next();
-});
+
 
 // Strict rate limit for auth endpoints
 function authRateLimit(req,res,next) {
@@ -395,6 +381,20 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+// ── Security middleware (must be after app creation) ─────────
+app.use((req,res,next) => {
+  res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('X-Frame-Options','SAMEORIGIN');
+  res.setHeader('X-XSS-Protection','1; mode=block');
+  res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
+  res.setHeader('ngrok-skip-browser-warning','1');
+  const ip = getClientIp(req);
+  if (req.path.startsWith('/api/') && getRateLimit(ip, 200, 60000)) {
+    return res.status(429).json({error:'Занадто багато запитів. Спробуй через хвилину.'});
+  }
+  next();
+});
 app.use((req,res,next)=>{res.setHeader('ngrok-skip-browser-warning','1');next();});
 
 // Static
