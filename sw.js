@@ -29,6 +29,7 @@ self.addEventListener('fetch', e => {
     e.request.method !== 'GET' || 
     url.pathname.includes('/api/') || 
     url.pathname.includes('/ws') ||
+    url.pathname.includes('/auth') ||
     !url.protocol.startsWith('http')
   ) {
     return;
@@ -37,10 +38,13 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(e.request)
       .then(r => {
-        // Проверяем, можно ли клонировать ответ (статус 200 и тело еще не использовано)
-        if (r.ok && !r.bodyUsed) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ:
+        // Проверяем r.bodyUsed ПЕРЕД r.clone(), чтобы не вызывать TypeError
+        if (r.ok && !r.bodyUsed && r.type === 'basic') {
           const responseToCache = r.clone();
-          caches.open(CACHE).then(c => c.put(e.request, responseToCache));
+          caches.open(CACHE).then(c => {
+            c.put(e.request, responseToCache).catch(() => {});
+          });
         }
         return r;
       })
