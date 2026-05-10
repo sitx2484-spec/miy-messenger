@@ -2428,7 +2428,10 @@ async function submitSetup(){
   if(_params.get('error')==='auth')
     document.getElementById('login-error').textContent='Помилка авторизації.';
   try{
-    const r=await fetch('/api/me');if(!r.ok)return;
+    const r=await fetch('/api/me', {credentials:'include'});
+    // 401 = не авторизований, просто показуємо логін (це нормально)
+    if(r.status===401)return;
+    if(!r.ok)return;
     me=await r.json();
     if(me.banned){document.getElementById('login-error').textContent='❌ Тебе заблокував адмін.';return;}
     if(me.needsSetup||_params.get('setup')==='1'){showSetupScreen();return;}
