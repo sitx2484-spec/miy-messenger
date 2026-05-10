@@ -21,6 +21,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'echo-secret-2025';
 const BASE_URL       = process.env.BASE_URL || `http://localhost:${PORT}`;
 const ADMIN_EMAIL    = 'saschamykkekan@gmail.com';
 const DATA_FILE      = path.join(__dirname, 'data.json');
+const app = express();
 
 // ── Nodemailer setup ──────────────────────────────────────────
 let mailer = null;
@@ -373,7 +374,6 @@ setInterval(()=>{
 }, 5*60*1000);
 
 
-const app = express();
 app.use(express.json({limit:'30mb'}));
 app.use(session({
   secret:SESSION_SECRET, resave:false, saveUninitialized:false,
