@@ -1,4 +1,4 @@
-// Echo Messenger — Service Worker v2.1
+// Echo Messenger — Service Worker v2.2
 const CACHE = 'echo-v2';
 const STATIC = ['/', '/manifest.json', '/icon.svg'];
 
@@ -24,7 +24,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Игнорируем API, WebSocket, POST запросы и расширения (chrome-extension)
+  // Игнорируем API, WebSocket, POST запросы, авторизацию и расширения
   if (
     e.request.method !== 'GET' || 
     url.pathname.includes('/api/') || 
@@ -39,8 +39,9 @@ self.addEventListener('fetch', e => {
     fetch(e.request)
       .then(r => {
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ:
-        // Проверяем r.bodyUsed ПЕРЕД r.clone(), чтобы не вызывать TypeError
-        if (r.ok && !r.bodyUsed && r.type === 'basic') {
+        // Не клонируем ответы, которые уже используются или имеют ошибки (401, 404 и т.д.)
+        // r.type === 'basic' гарантирует, что мы кешируем только ответы с нашего домена
+        if (r && r.status === 200 && !r.bodyUsed && r.type === 'basic') {
           const responseToCache = r.clone();
           caches.open(CACHE).then(c => {
             c.put(e.request, responseToCache).catch(() => {});
@@ -54,7 +55,13 @@ self.addEventListener('fetch', e => {
 
 // Push notifications (Твоя логика звонков и сообщений)
 self.addEventListener('push', e => {
-  const d = e.data?.json() || {};
+  let d = {};
+  try {
+    d = e.data?.json() || {};
+  } catch (err) {
+    d = { title: 'Нове повідомлення', body: e.data?.text() };
+  }
+  
   const isCall = d.type === 'call';
   
   e.waitUntil(
